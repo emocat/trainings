@@ -1,0 +1,153 @@
+#! /usr/bin/python
+from sys import modules
+from cpython import get_dict
+from types import FunctionType
+import os
+import socket
+
+main  = modules['__main__'].__dict__
+origin_builtins = main['__builtins__'].__dict__
+
+
+
+
+def delete_type():
+    type_dict = get_dict(type)
+    del type_dict['__bases__']
+    del type_dict['__subclasses__']
+    del type_dict['__getattribute__']
+
+def delete_func_code():
+    func_dict = get_dict(FunctionType)
+    del func_dict['func_code']
+
+def safe_import(__import__,whiteList):
+    def importer(name,globals={},locals={},fromlist=[],level=-1):
+        if name in whiteList:
+            return __import__(name,globals,locals,fromlist,level)
+        else:
+            s2.send("Sorry,[%s] can not be used\n" % name)
+    return importer
+
+class ReadOnly(dict):
+    """docstring for ReadOnlu"""
+    def __delitem__(self,keys):
+        raise ValueError(":(")
+    def pop(self,key,default=None):
+        raise ValueError(":(")
+    def popitem(self):
+        raise ValueError(":(")
+    def setdefault(self,key,value):
+        raise ValueError(":(")
+    def __setitem__(self,key,value):
+        raise ValueError(":(")
+    def __setattr__(self, name, value):
+        raise ValueError(":(")
+    def update(self,dict,**kwargs):
+        raise ValueError(":(")
+
+def builtins_clear():
+    whiteList = "raw_input  SyntaxError   ValueError  NameError  Exception __import__".split(" ")
+    for mod in __builtins__.__dict__.keys():
+        if mod not in whiteList:
+            del __builtins__.__dict__[mod]
+
+def input_filter(string):
+    ban = "exec eval pickle os subprocess input sys ls cat".split(" ")
+    for i in ban:
+        if i in string.lower():
+            s2.send("{} can not be used!\n".format(i))
+            return ""
+    return string
+
+
+
+delete_type()
+del delete_type
+delete_func_code();del delete_func_code
+
+# builtins_clear()
+# del builtins_clear
+
+whiteMod = []
+origin_builtins['__import__'] = safe_import(__import__,whiteMod)
+safe_builtins = ReadOnly(origin_builtins);del ReadOnly
+main['__builtins__'] = safe_builtins;del safe_builtins
+
+del get_dict,modules,origin_builtins,safe_import,whiteMod,main,FunctionType
+del __builtins__, __doc__, __file__, __name__, __package__
+
+
+
+s2 =  None
+def myserver():
+    global s2
+    s = socket.socket()
+    s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+    s.bind(('0.0.0.0', 12312))
+    s.listen(5)
+
+    while True:
+        s2 = s.accept()
+        s2 = s2[0]
+        pid = os.fork()
+        if pid == 0:
+            break
+        s2.close()
+        os.wait()
+    pid = os.fork()
+    if pid != 0:
+        exit(0)
+        
+    s2.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 0)
+    s2.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 0)
+    s2_fd = s2.fileno()
+    a = """
+#####           ###                  ##  ##                   
+ #   #         #  #                   #   #                   
+ #   #         #                      #   #                   
+ #   # ###  ##  #   ####  ######   ####   ####   ####  ### ## 
+ ####   ##  #    ##    #   #   #  #   #   #   # ##  ##  ## #  
+ #       # ##     # ####   #   #  #   #   #   # #    #   ##   
+ #       # #   #  # #  #   #   #  #   #   #   # ##  ##  # ##  
+###       #    ###  ##### ### ###  #####  ####   ####  ## ### 
+          #                                                   
+        ##       
+
+
+Try to get the flag!
+
+Tell you a secret : flag in /home/flag . XD
+
+"""
+    s2.send(a)
+    os.dup2(s2_fd, 0)
+    #os.dup2(s2_fd, 1)
+    #os.dup2(s2_fd, 2)
+
+try:
+    myserver()
+except Exception as e:
+    print(e)
+
+del os
+del socket
+
+
+
+while 1:
+    s2.send(">>>")
+    inp = raw_input()
+    cmd = input_filter(inp)
+    try:
+        exec(cmd)
+        #s2.send("Your cmd:"+ cmd)
+    except Exception as e:
+        s2.send("try again !XD \n")
+    except NameError as e:
+        s2.send("wow ! error !XD \n")
+    except SyntaxError as e:
+        s2.send("Noob! Synax Wrong! :(\n")
+    except Exception as e:
+        s2.send("unknow error,try again  :>\n")
+
